@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: cloudengineers
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      nodeSelector:
+        "beta.kubernetes.io/os": linux
+      containers:
+      - name: nginx
+        image: hptestcontreg.azurecr.io/nginx:1.1.1
+        imagePullPolicy: Always
+        resources:
+        ports:
+        - containerPort: 80
+      imagePullSecrets:
+      - name: mydockerimagepullsec
+  replicas: 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: cloudengineers
+spec:
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx
+  namespace: cloudengineers
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: nginx
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageValue: 1000Mi
